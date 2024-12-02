@@ -3,16 +3,23 @@ const express = require ("express");
 const { initializeApp, cert } = require ("firebase-admin/app");
 const { getFirestore } = require ("firebase-admin/firestore");
 const serviceAccount = require("./config/serviceAccountKey.json"); // importe le service account credentials de firestore
+const { Server } = require("socket.io");
+const http = require('http');
+const dotenv = require('dotenv')
 
+dotenv.config();
 // créer une app express
 const app = express();
-const port = 3000;
+const PORT = process.env.PORT || 5000;
 
 // créer le serveur websocket
-const http = require('http');
 const server = http.createServer(app);
-const { Server } = require("socket.io");
-const io = new Server(server);
+const io = new Server(server, {
+    cors: {
+        origin: "http://localhost:5173",
+        methods: ["GET", "POST"],
+    }
+});
 
 // initialise firebase admin
 initializeApp({
@@ -21,16 +28,10 @@ initializeApp({
 });
 
 /**
- * config le middleware CORS
+ * config du middleware CORS et des autres middleware
  * ça permet les requêtes depuis http://localhost:5173 et définit des options spécifiques
  */
-app.use(cors({
-    origin: 'http://localhost:5173',
-    methods: ["GET", "POST", "PUT", "DELETE", "HEAD", "OPTIONS"],
-    credentials: true,
-    optionsSuccessStatus: 200,
-}));
-
+app.use(cors());
 app.use(express.json());
 
 /**
@@ -44,12 +45,13 @@ app.get('/', (req, res) => {
     return res.status(200).send('Bonjour');
 });
 
-app.listen(port, () => {
-    console.log(`app listening on port ${port}`)
+app.listen(PORT, () => {
+    console.log(`app listening on port ${PORT}`)
 })
 
 io.on('connection', (socket) => {
     console.log('a user connected');
+
     socket.on('disconnect', () => {
       console.log('user disconnected');
     });
