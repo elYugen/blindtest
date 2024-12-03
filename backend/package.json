@@ -1,12 +1,13 @@
 {
   "name": "backend",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "main.js",
   "scripts": {
     "start": "node main.js",
     "dev": "nodemon main.js"
   },
   "keywords": [],
+  "type": "module",
   "author": "",
   "license": "ISC",
   "description": "",
