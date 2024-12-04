@@ -10,4 +10,5 @@ initializeApp({
 
 // Exporter Firestore
 const db = getFirestore();
+
 export default db;

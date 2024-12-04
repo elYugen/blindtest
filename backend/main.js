@@ -2,8 +2,8 @@ import cors from "cors";
 import express from "express";
 import { Server } from "socket.io";
 import http from "http";
-import dotenv from "dotenv";
 import { PORT } from "./config/config.js";
+import session from "express-session";
 
 // Import config bdd
 import db from "./config/firebaseConfig.js";
@@ -11,6 +11,8 @@ import db from "./config/firebaseConfig.js";
 // Import des différentes routes
 import songRoutes from "./routes/songRoutes.js";
 import roomRoutes from "./routes/roomRoutes.js";
+import authRoutes from "./routes/authRoutes.js";
+import playlistRoutes from "./routes/playlistRoutes.js";
 
 /**
  * Crée une application Express
@@ -33,15 +35,35 @@ const io = new Server(server, {
     cors: {
         origin: "http://localhost:5173",
         methods: ["GET", "POST"],
-    }
+        credentials: true, // Autorise les cookies/sessions partagés
+    },
 });
+
+// Configuration du système de session
+app.use(session({
+    // Clé secrète utilisée pour signer le cookie de session
+    secret: '7hv0U2!-rr+uW~e$;2nC,4<9<iK9tFDqjlXDNbE[%bdFD7]AsY}&3ed77)*^;Wk',
+    
+    // Options de session
+    resave: false,                // Ne pas sauvegarder la session si elle n'est pas modifiée
+    saveUninitialized: false,     // Ne pas créer de session tant qu'il n'y a rien à stocker
+
+    // Configuration du stockage des sessions dans la mémoire
+    store: new session.MemoryStore(),
+
+    // Configuration du cookie de session
+    cookie: {
+        secure: false,      // false car nous n'utilisons pas HTTPS en développement
+        httpOnly: true,     // Empêche l'accès au cookie via JavaScript (sécurité)
+        maxAge: 1000 * 60 * 60 * 24  // Durée de vie du cookie : 24 heures en millisecondes
+    }
+}));
 
 // Configuration des middlewares
 app.use(cors({
-    cors: {
-        origin: "*",
-        methods: ["GET", "POST", "PUT", "DELETE"],
-    }
+    origin: "http://localhost:5173", // Origine autorisée
+    methods: ["GET", "POST", "PUT", "DELETE"], // Méthodes HTTP autorisées
+    credentials: true, // Autorise les cookies/sessions partagés
 }));
 app.use(express.json());
 
@@ -61,13 +83,26 @@ server.listen(PORT, () => {
     console.log(`app listening on port ${PORT}`)
 });
 
-// Gère les connexion socket.io
 io.on('connection', (socket) => {
     console.log('a user connected');
 
-    socket.on('joinRoom', (roomId) => {
+    // gere l'utilisateurqui rej une salle
+    socket.on('joinRoom', (roomId, username) => {
         socket.join(roomId);
-        console.log(`User joined room ${roomId}`);
+        console.log(`${username} joined room ${roomId}`);
+        socket.username = username || 'Anonyme'; 
+        socket.roomId = roomId; 
+    });
+
+    // gere les message
+    socket.on('chat message', (msg) => {
+        const messageData = {
+            username: socket.username || 'Anonyme',
+            message: msg, 
+        };
+
+        // envoie le message dans la salle de l'utilisateur
+        io.to(socket.roomId).emit('chat message', messageData);
     });
 
     socket.on('disconnect', () => {
@@ -78,7 +113,8 @@ io.on('connection', (socket) => {
 // Routes de l'application
 app.use('/song', songRoutes);
 app.use('/room', roomRoutes);
-
+app.use('/auth', authRoutes);
+app.use('/playlist', playlistRoutes);
 
 /**
  * Route de test pour la base de données

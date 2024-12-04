@@ -1,5 +1,4 @@
 import express from "express"
-import Song from "../models/songModel.js";
 import db from "../config/firebaseConfig.js";
 
 // créer un router pour gérer toutes les routes lié aux sons
