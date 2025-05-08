@@ -5,7 +5,7 @@ import serviceAccount from "./serviceAccountKey.json" assert { type: "json" };
 // Initialiser Firebase
 initializeApp({
     credential: cert(serviceAccount),
-    databaseURL: "https://blindtest-4576c.firebaseio.com"
+    databaseURL: ""
 });
 
 // Exporter Firestore
